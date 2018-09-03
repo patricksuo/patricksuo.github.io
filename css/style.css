@@ -139,6 +139,14 @@ li {
 	list-style-type: none;
 }
 
+.content>ul>li{
+	list-style-type: disc;
+}
+
+.content>ol>li{
+	list-style-type: disc;
+}
+
 table {
 	margin-bottom: 1.5rem;
 	border: 1px solid #e5e5e5;
