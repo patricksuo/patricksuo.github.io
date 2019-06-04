@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>Posts on blog.su21.org</title>
@@ -6,10 +5,50 @@
     <description>Recent content in Posts on blog.su21.org</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-CN</language>
-    <lastBuildDate>Tue, 04 Sep 2018 01:24:36 +0800</lastBuildDate>
+    <lastBuildDate>Fri, 17 May 2019 15:05:43 +0000</lastBuildDate>
     
         <atom:link href="http://blog.su21.org/posts/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>IEEE 754 Floating-Point</title>
+      <link>http://blog.su21.org/posts/floating_point/</link>
+      <pubDate>Fri, 17 May 2019 15:05:43 +0000</pubDate>
+      
+      <guid>http://blog.su21.org/posts/floating_point/</guid>
+      <description>&lt;p&gt;遇到几次浮点数的问题需要了解浮点数的内存布局。
+还是写下解析 IEEE 754 浮点数标准的代码方便回忆:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-golang&#34; data-lang=&#34;golang&#34;&gt;&lt;span style=&#34;color:#008000;font-weight:bold&#34;&gt;package&lt;/span&gt; main
+
+&lt;span style=&#34;color:#008000;font-weight:bold&#34;&gt;import&lt;/span&gt; (
+	&lt;span style=&#34;color:#ba2121&#34;&gt;&amp;#34;fmt&amp;#34;&lt;/span&gt;
+	&lt;span style=&#34;color:#ba2121&#34;&gt;&amp;#34;math&amp;#34;&lt;/span&gt;
+	&lt;span style=&#34;color:#ba2121&#34;&gt;&amp;#34;os&amp;#34;&lt;/span&gt;
+	&lt;span style=&#34;color:#ba2121&#34;&gt;&amp;#34;strconv&amp;#34;&lt;/span&gt;
+)
+
+&lt;span style=&#34;color:#008000;font-weight:bold&#34;&gt;func&lt;/span&gt; &lt;span style=&#34;color:#00f&#34;&gt;main&lt;/span&gt;() {
+	&lt;span style=&#34;color:#008000;font-weight:bold&#34;&gt;if&lt;/span&gt; &lt;span style=&#34;color:#008000&#34;&gt;len&lt;/span&gt;(os.Args) &amp;lt; &lt;span style=&#34;color:#666&#34;&gt;2&lt;/span&gt; {
+		&lt;span style=&#34;color:#008000&#34;&gt;println&lt;/span&gt;(&lt;span style=&#34;color:#ba2121&#34;&gt;&amp;#34;param is required.&amp;#34;&lt;/span&gt;)
+		&lt;span style=&#34;color:#008000;font-weight:bold&#34;&gt;return&lt;/span&gt;
+	}
+
+	f64, err &lt;span style=&#34;color:#666&#34;&gt;:=&lt;/span&gt; strconv.&lt;span style=&#34;color:#00f&#34;&gt;ParseFloat&lt;/span&gt;(os.Args[&lt;span style=&#34;color:#666&#34;&gt;1&lt;/span&gt;], &lt;span style=&#34;color:#666&#34;&gt;32&lt;/span&gt;)
+	&lt;span style=&#34;color:#008000;font-weight:bold&#34;&gt;if&lt;/span&gt; err &lt;span style=&#34;color:#666&#34;&gt;!=&lt;/span&gt; &lt;span style=&#34;color:#008000;font-weight:bold&#34;&gt;nil&lt;/span&gt; {
+		fmt.&lt;span style=&#34;color:#00f&#34;&gt;Printf&lt;/span&gt;(&lt;span style=&#34;color:#ba2121&#34;&gt;&amp;#34;param is not float? parse error: %v&amp;#34;&lt;/span&gt;, os.Args[&lt;span style=&#34;color:#666&#34;&gt;1&lt;/span&gt;], err)
+		&lt;span style=&#34;color:#008000;font-weight:bold&#34;&gt;return&lt;/span&gt;
+	}
+
+	f &lt;span style=&#34;color:#666&#34;&gt;:=&lt;/span&gt; &lt;span style=&#34;color:#008000&#34;&gt;float32&lt;/span&gt;(f64)
+	bits &lt;span style=&#34;color:#666&#34;&gt;:=&lt;/span&gt; math.&lt;span style=&#34;color:#00f&#34;&gt;Float32bits&lt;/span&gt;(f)
+	sig &lt;span style=&#34;color:#666&#34;&gt;:=&lt;/span&gt; bits &lt;span style=&#34;color:#666&#34;&gt;&amp;gt;&amp;gt;&lt;/span&gt; &lt;span style=&#34;color:#666&#34;&gt;31&lt;/span&gt;
+	exp &lt;span style=&#34;color:#666&#34;&gt;:=&lt;/span&gt; &lt;span style=&#34;color:#008000&#34;&gt;int&lt;/span&gt;((bits &lt;span style=&#34;color:#666&#34;&gt;&amp;amp;&lt;/span&gt; &lt;span style=&#34;color:#666&#34;&gt;0x7f800000&lt;/span&gt;) &lt;span style=&#34;color:#666&#34;&gt;&amp;gt;&amp;gt;&lt;/span&gt; &lt;span style=&#34;color:#666&#34;&gt;23&lt;/span&gt;)
+	dig &lt;span style=&#34;color:#666&#34;&gt;:=&lt;/span&gt; bits &lt;span style=&#34;color:#666&#34;&gt;&amp;amp;&lt;/span&gt; &lt;span style=&#34;color:#666&#34;&gt;0x7fffff&lt;/span&gt;
+
+	fmt.&lt;span style=&#34;color:#00f&#34;&gt;Printf&lt;/span&gt;(&lt;span style=&#34;color:#ba2121&#34;&gt;&amp;#34;%f = (-1)^%d * 2^(%d) * 1.%b\n&amp;#34;&lt;/span&gt;, f, sig, exp&lt;span style=&#34;color:#666&#34;&gt;-&lt;/span&gt;&lt;span style=&#34;color:#666&#34;&gt;127&lt;/span&gt;, dig)
+	fmt.&lt;span style=&#34;color:#00f&#34;&gt;Printf&lt;/span&gt;(&lt;span style=&#34;color:#ba2121&#34;&gt;&amp;#34;%032b\n&amp;#34;&lt;/span&gt;, bits)
+}&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;</description>
+    </item>
     
     <item>
       <title>服务故障自动恢复</title>
@@ -71,8 +110,8 @@
 
 &lt;span style=&#34;color:#008000;font-weight:bold&#34;&gt;import&lt;/span&gt; &lt;span style=&#34;color:#ba2121&#34;&gt;&amp;#34;fmt&amp;#34;&lt;/span&gt;
 
-&lt;span style=&#34;color:#008000;font-weight:bold&#34;&gt;func&lt;/span&gt; main() {
-    fmt.Println(&lt;span style=&#34;color:#ba2121&#34;&gt;&amp;#34;hello world!&amp;#34;&lt;/span&gt;)
+&lt;span style=&#34;color:#008000;font-weight:bold&#34;&gt;func&lt;/span&gt; &lt;span style=&#34;color:#00f&#34;&gt;main&lt;/span&gt;() {
+    fmt.&lt;span style=&#34;color:#00f&#34;&gt;Println&lt;/span&gt;(&lt;span style=&#34;color:#ba2121&#34;&gt;&amp;#34;hello world!&amp;#34;&lt;/span&gt;)
 }&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;</description>
     </item>
     
