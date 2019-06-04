@@ -1,21 +1,21 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>blog.su21.org</title>
-    <link>http://blog.su21.org/</link>
+    <link>https://blog.su21.org/</link>
     <description>Recent content on blog.su21.org</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-CN</language>
     <lastBuildDate>Fri, 17 May 2019 15:05:43 +0000</lastBuildDate>
     
-        <atom:link href="http://blog.su21.org/index.xml" rel="self" type="application/rss+xml" />
+        <atom:link href="https://blog.su21.org/index.xml" rel="self" type="application/rss+xml" />
     
     
     <item>
       <title>IEEE 754 Floating-Point</title>
-      <link>http://blog.su21.org/posts/floating_point/</link>
+      <link>https://blog.su21.org/posts/floating_point/</link>
       <pubDate>Fri, 17 May 2019 15:05:43 +0000</pubDate>
       
-      <guid>http://blog.su21.org/posts/floating_point/</guid>
+      <guid>https://blog.su21.org/posts/floating_point/</guid>
       <description>&lt;p&gt;遇到几次浮点数的问题需要了解浮点数的内存布局。
 还是写下解析 IEEE 754 浮点数标准的代码方便回忆:&lt;/p&gt;
 &lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-golang&#34; data-lang=&#34;golang&#34;&gt;&lt;span style=&#34;color:#008000;font-weight:bold&#34;&gt;package&lt;/span&gt; main
@@ -52,10 +52,10 @@
     
     <item>
       <title>服务故障自动恢复</title>
-      <link>http://blog.su21.org/posts/options_about_service_failure_and_auto_recovery/</link>
+      <link>https://blog.su21.org/posts/options_about_service_failure_and_auto_recovery/</link>
       <pubDate>Tue, 04 Sep 2018 01:24:36 +0800</pubDate>
       
-      <guid>http://blog.su21.org/posts/options_about_service_failure_and_auto_recovery/</guid>
+      <guid>https://blog.su21.org/posts/options_about_service_failure_and_auto_recovery/</guid>
       <description>&lt;p&gt;达达对服务器 crash 自动重启表示过反对。但鹅厂有种服务故障快速拉起的传统。&lt;/p&gt;
 
 &lt;p&gt;一开始我以为是两种大相径庭的观点，为此很困惑。
@@ -101,28 +101,28 @@
     
     <item>
       <title>Archives</title>
-      <link>http://blog.su21.org/archives/</link>
+      <link>https://blog.su21.org/archives/</link>
       <pubDate>Sun, 19 Aug 2018 16:01:50 +0800</pubDate>
       
-      <guid>http://blog.su21.org/archives/</guid>
+      <guid>https://blog.su21.org/archives/</guid>
       <description></description>
     </item>
     
     <item>
       <title>About</title>
-      <link>http://blog.su21.org/about/</link>
+      <link>https://blog.su21.org/about/</link>
       <pubDate>Sun, 19 Aug 2018 16:01:42 +0800</pubDate>
       
-      <guid>http://blog.su21.org/about/</guid>
+      <guid>https://blog.su21.org/about/</guid>
       <description></description>
     </item>
     
     <item>
       <title>Hello</title>
-      <link>http://blog.su21.org/posts/hello/</link>
+      <link>https://blog.su21.org/posts/hello/</link>
       <pubDate>Sun, 19 Aug 2018 15:59:02 +0800</pubDate>
       
-      <guid>http://blog.su21.org/posts/hello/</guid>
+      <guid>https://blog.su21.org/posts/hello/</guid>
       <description>&lt;p&gt;just hello world!&lt;/p&gt;
 &lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-golang&#34; data-lang=&#34;golang&#34;&gt;&lt;span style=&#34;color:#008000;font-weight:bold&#34;&gt;package&lt;/span&gt; main
 
