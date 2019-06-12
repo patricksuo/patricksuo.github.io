@@ -5,10 +5,298 @@
     <description>Recent content in Posts on blog.su21.org</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-CN</language>
-    <lastBuildDate>Fri, 17 May 2019 15:05:43 +0000</lastBuildDate>
+    <lastBuildDate>Sat, 08 Jun 2019 17:59:57 +0000</lastBuildDate>
     
         <atom:link href="https://blog.su21.org/posts/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>AES 加密优化</title>
+      <link>https://blog.su21.org/posts/aes_simd/</link>
+      <pubDate>Sat, 08 Jun 2019 17:59:57 +0000</pubDate>
+      
+      <guid>https://blog.su21.org/posts/aes_simd/</guid>
+      <description>&lt;p&gt;最近在优化一块 UDP 协议加密模块。
+加密算法用到了 &lt;a href=&#34;https://en.wikipedia.org/wiki/Advanced_Encryption_Standard&#34;&gt;AES&lt;/a&gt;。
+dotnet BCL 实现会有不可避免的内存分配，我不是特别满意。
+对于需要特别优化的情景， AES 完全可以原地加密解密，避免额外的内存分配与数据拷贝。&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;加密&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;AES 对加密数据长度有要求，加密数据需要 &lt;a href=&#34;https://en.wikipedia.org/wiki/Padding_(cryptography)&#34;&gt;padding&lt;/a&gt; 补齐到 N×BlockSize 字节。&lt;/p&gt;
+
+&lt;p&gt;实现中选用了 &lt;strong&gt;PKCS#7&lt;/strong&gt; 中约定的 padding方案，具体算法如下：&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;padding 长度：
+
+&lt;ul&gt;
+&lt;li&gt;如果原数据是 BlockSize 的倍数，那么额外填充 BlockSize 字节；&lt;/li&gt;
+&lt;li&gt;否则补充 N 字节，使得数据长度是 BlockSize 的倍数。&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;li&gt;padding 内容：每个字节 填充的是额外填充的字节数&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;padding 后密文要比明文长，但 padding 长度是有上限的：最多增多 BlockSize 字节。
+如果存储原文的 buffer 预留 padding 的空间，那么也可以做到原地加密，无需分配额外内存。&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;解密&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;解密只需原地解密，舍弃多余的 padding 即可。&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;接口设计如下&lt;/strong&gt;&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-csharp&#34; data-lang=&#34;csharp&#34;&gt;&lt;span style=&#34;color:#008000;font-weight:bold&#34;&gt;public&lt;/span&gt; &lt;span style=&#34;color:#008000;font-weight:bold&#34;&gt;class&lt;/span&gt; &lt;span style=&#34;color:#00f;font-weight:bold&#34;&gt;Aes&lt;/span&gt;
+{
+	&lt;span style=&#34;color:#008000;font-weight:bold&#34;&gt;public&lt;/span&gt; Aes(&lt;span style=&#34;color:#b00040&#34;&gt;byte&lt;/span&gt;&lt;span style=&#34;color:#7d9029&#34;&gt;[]&lt;/span&gt; key);
+
+	&lt;span style=&#34;color:#408080;font-style:italic&#34;&gt;// 原地加密数据，调用方保证 padding
+&lt;/span&gt;&lt;span style=&#34;color:#408080;font-style:italic&#34;&gt;&lt;/span&gt;	&lt;span style=&#34;color:#008000;font-weight:bold&#34;&gt;public&lt;/span&gt; &lt;span style=&#34;color:#008000;font-weight:bold&#34;&gt;void&lt;/span&gt; Encrypt(&lt;span style=&#34;color:#b00040&#34;&gt;byte&lt;/span&gt;&lt;span style=&#34;color:#7d9029&#34;&gt;[]&lt;/span&gt; data, &lt;span style=&#34;color:#b00040&#34;&gt;int&lt;/span&gt; offset, &lt;span style=&#34;color:#b00040&#34;&gt;int&lt;/span&gt; count);
+
+	&lt;span style=&#34;color:#408080;font-style:italic&#34;&gt;// 原地解密，调用方保证数据长度合法
+&lt;/span&gt;&lt;span style=&#34;color:#408080;font-style:italic&#34;&gt;&lt;/span&gt;	&lt;span style=&#34;color:#008000;font-weight:bold&#34;&gt;public&lt;/span&gt; &lt;span style=&#34;color:#008000;font-weight:bold&#34;&gt;void&lt;/span&gt; Decrypt(&lt;span style=&#34;color:#b00040&#34;&gt;byte&lt;/span&gt;&lt;span style=&#34;color:#7d9029&#34;&gt;[]&lt;/span&gt; data, &lt;span style=&#34;color:#b00040&#34;&gt;int&lt;/span&gt; offset, &lt;span style=&#34;color:#b00040&#34;&gt;int&lt;/span&gt; count);
+}
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;&lt;strong&gt;Bencmark&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;做了一版用 Simd 的实现和一版纯 CSharp 的实现，和 BCL 实现对比如下&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-ini&#34; data-lang=&#34;ini&#34;&gt;&lt;span style=&#34;color:#7d9029&#34;&gt;BenchmarkDotNet&lt;/span&gt;&lt;span style=&#34;color:#666&#34;&gt;=&lt;/span&gt;&lt;span style=&#34;color:#ba2121&#34;&gt;v0.11.5, OS=Windows 10.0.17763.503 (1809/October2018Update/Redstone5)&lt;/span&gt;
+&lt;span style=&#34;color:#7d9029&#34;&gt;Intel Core i9-9900K CPU 3.60GHz (Coffee Lake), 1 CPU, 16 logical and 8 physical cores&lt;/span&gt;
+&lt;span style=&#34;color:#7d9029&#34;&gt;.NET Core SDK&lt;/span&gt;&lt;span style=&#34;color:#666&#34;&gt;=&lt;/span&gt;&lt;span style=&#34;color:#ba2121&#34;&gt;3.0.100-preview5-011568
+&lt;/span&gt;&lt;span style=&#34;color:#ba2121&#34;&gt;  [Host] : .NET Core 3.0.0-preview5-27626-15 (CoreCLR 4.6.27622.75, CoreFX 4.700.19.22408), 64bit RyuJIT
+&lt;/span&gt;&lt;span style=&#34;color:#ba2121&#34;&gt;  Core   : .NET Core 3.0.0-preview5-27626-15 (CoreCLR 4.6.27622.75, CoreFX 4.700.19.22408), 64bit RyuJIT&lt;/span&gt;
+
+&lt;span style=&#34;color:#7d9029&#34;&gt;Job&lt;/span&gt;&lt;span style=&#34;color:#666&#34;&gt;=&lt;/span&gt;&lt;span style=&#34;color:#ba2121&#34;&gt;Core  Runtime=Core  &lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;Method&lt;/th&gt;
+&lt;th&gt;N&lt;/th&gt;
+&lt;th align=&#34;right&#34;&gt;Mean&lt;/th&gt;
+&lt;th align=&#34;right&#34;&gt;Error&lt;/th&gt;
+&lt;th align=&#34;right&#34;&gt;StdDev&lt;/th&gt;
+&lt;th align=&#34;right&#34;&gt;Median&lt;/th&gt;
+&lt;th align=&#34;right&#34;&gt;Rank&lt;/th&gt;
+&lt;th align=&#34;right&#34;&gt;Gen 0&lt;/th&gt;
+&lt;th align=&#34;right&#34;&gt;Gen 1&lt;/th&gt;
+&lt;th align=&#34;right&#34;&gt;Gen 2&lt;/th&gt;
+&lt;th align=&#34;right&#34;&gt;Allocated&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;SimdAes&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;&lt;strong&gt;64&lt;/strong&gt;&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;&lt;strong&gt;37.56 ns&lt;/strong&gt;&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;&lt;strong&gt;0.1362 ns&lt;/strong&gt;&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;&lt;strong&gt;0.1274 ns&lt;/strong&gt;&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;&lt;strong&gt;37.56 ns&lt;/strong&gt;&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;&lt;strong&gt;1&lt;/strong&gt;&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;&lt;strong&gt;-&lt;/strong&gt;&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;&lt;strong&gt;-&lt;/strong&gt;&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;&lt;strong&gt;-&lt;/strong&gt;&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;&lt;strong&gt;-&lt;/strong&gt;&lt;/td&gt;
+&lt;/tr&gt;
+
+&lt;tr&gt;
+&lt;td&gt;SoftAes&lt;/td&gt;
+&lt;td&gt;64&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;1,052.10 ns&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;2.8615 ns&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;2.5366 ns&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;1,051.82 ns&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;9&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;-&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;-&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;-&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;-&lt;/td&gt;
+&lt;/tr&gt;
+
+&lt;tr&gt;
+&lt;td&gt;BCLAes&lt;/td&gt;
+&lt;td&gt;64&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;227.02 ns&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;1.4791 ns&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;1.3112 ns&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;227.01 ns&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;3&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;0.0560&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;-&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;-&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;352 B&lt;/td&gt;
+&lt;/tr&gt;
+
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;SimdAes&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;&lt;strong&gt;128&lt;/strong&gt;&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;&lt;strong&gt;69.44 ns&lt;/strong&gt;&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;&lt;strong&gt;0.4143 ns&lt;/strong&gt;&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;&lt;strong&gt;0.3876 ns&lt;/strong&gt;&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;&lt;strong&gt;69.31 ns&lt;/strong&gt;&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;&lt;strong&gt;2&lt;/strong&gt;&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;&lt;strong&gt;-&lt;/strong&gt;&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;&lt;strong&gt;-&lt;/strong&gt;&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;&lt;strong&gt;-&lt;/strong&gt;&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;&lt;strong&gt;-&lt;/strong&gt;&lt;/td&gt;
+&lt;/tr&gt;
+
+&lt;tr&gt;
+&lt;td&gt;SoftAes&lt;/td&gt;
+&lt;td&gt;128&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;2,089.74 ns&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;10.2304 ns&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;9.5696 ns&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;2,083.32 ns&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;11&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;-&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;-&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;-&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;-&lt;/td&gt;
+&lt;/tr&gt;
+
+&lt;tr&gt;
+&lt;td&gt;BCLAes&lt;/td&gt;
+&lt;td&gt;128&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;248.72 ns&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;0.7852 ns&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;0.7345 ns&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;248.73 ns&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;4&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;0.0968&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;-&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;-&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;608 B&lt;/td&gt;
+&lt;/tr&gt;
+
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;SimdAes&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;&lt;strong&gt;512&lt;/strong&gt;&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;&lt;strong&gt;258.95 ns&lt;/strong&gt;&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;&lt;strong&gt;5.1241 ns&lt;/strong&gt;&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;&lt;strong&gt;6.6628 ns&lt;/strong&gt;&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;&lt;strong&gt;261.58 ns&lt;/strong&gt;&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;&lt;strong&gt;5&lt;/strong&gt;&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;&lt;strong&gt;-&lt;/strong&gt;&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;&lt;strong&gt;-&lt;/strong&gt;&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;&lt;strong&gt;-&lt;/strong&gt;&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;&lt;strong&gt;-&lt;/strong&gt;&lt;/td&gt;
+&lt;/tr&gt;
+
+&lt;tr&gt;
+&lt;td&gt;SoftAes&lt;/td&gt;
+&lt;td&gt;512&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;8,301.91 ns&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;46.5607 ns&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;43.5529 ns&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;8,312.21 ns&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;12&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;-&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;-&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;-&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;-&lt;/td&gt;
+&lt;/tr&gt;
+
+&lt;tr&gt;
+&lt;td&gt;BCLAes&lt;/td&gt;
+&lt;td&gt;512&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;481.27 ns&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;9.1106 ns&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;8.0763 ns&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;482.38 ns&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;6&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;0.3414&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;-&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;-&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;2144 B&lt;/td&gt;
+&lt;/tr&gt;
+
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;SimdAes&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;&lt;strong&gt;1024&lt;/strong&gt;&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;&lt;strong&gt;522.52 ns&lt;/strong&gt;&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;&lt;strong&gt;2.0733 ns&lt;/strong&gt;&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;&lt;strong&gt;1.9394 ns&lt;/strong&gt;&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;&lt;strong&gt;522.54 ns&lt;/strong&gt;&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;&lt;strong&gt;7&lt;/strong&gt;&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;&lt;strong&gt;-&lt;/strong&gt;&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;&lt;strong&gt;-&lt;/strong&gt;&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;&lt;strong&gt;-&lt;/strong&gt;&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;&lt;strong&gt;-&lt;/strong&gt;&lt;/td&gt;
+&lt;/tr&gt;
+
+&lt;tr&gt;
+&lt;td&gt;SoftAes&lt;/td&gt;
+&lt;td&gt;1024&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;16,498.14 ns&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;57.6281 ns&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;51.0858 ns&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;16,496.09 ns&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;13&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;-&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;-&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;-&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;-&lt;/td&gt;
+&lt;/tr&gt;
+
+&lt;tr&gt;
+&lt;td&gt;BCLAes&lt;/td&gt;
+&lt;td&gt;1024&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;806.21 ns&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;3.8529 ns&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;3.6040 ns&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;805.37 ns&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;8&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;0.6676&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;0.0010&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;-&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;4192 B&lt;/td&gt;
+&lt;/tr&gt;
+
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;SimdAes&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;&lt;strong&gt;2048&lt;/strong&gt;&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;&lt;strong&gt;1,058.61 ns&lt;/strong&gt;&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;&lt;strong&gt;6.4975 ns&lt;/strong&gt;&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;&lt;strong&gt;6.0777 ns&lt;/strong&gt;&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;&lt;strong&gt;1,056.97 ns&lt;/strong&gt;&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;&lt;strong&gt;9&lt;/strong&gt;&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;&lt;strong&gt;-&lt;/strong&gt;&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;&lt;strong&gt;-&lt;/strong&gt;&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;&lt;strong&gt;-&lt;/strong&gt;&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;&lt;strong&gt;-&lt;/strong&gt;&lt;/td&gt;
+&lt;/tr&gt;
+
+&lt;tr&gt;
+&lt;td&gt;SoftAes&lt;/td&gt;
+&lt;td&gt;2048&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;32,253.09 ns&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;638.4395 ns&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;1,245.2273 ns&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;32,820.29 ns&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;14&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;-&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;-&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;-&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;-&lt;/td&gt;
+&lt;/tr&gt;
+
+&lt;tr&gt;
+&lt;td&gt;BCLAes&lt;/td&gt;
+&lt;td&gt;2048&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;1,410.32 ns&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;6.7913 ns&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;6.0204 ns&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;1,407.00 ns&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;10&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;1.3199&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;-&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;-&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;8288 B&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+</description>
+    </item>
     
     <item>
       <title>IEEE 754 Floating-Point</title>

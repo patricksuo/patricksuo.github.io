@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	
+	<title>AES 加密优化</title>
+	
+	<meta name="description" content="">
+	<meta name="image" content="">
+	
+	<meta itemprop="name" content="AES 加密优化">
+	<meta itemprop="description" content="">
+	<meta itemprop="image" content="">
+	
+	<meta name="og:title" content="AES 加密优化">
+	<meta name="og:description" content="">
+	
+	<meta name="og:url" content="https://blog.su21.org/posts/aes_simd/">
+	<meta name="og:site_name" content="AES 加密优化">
+	<meta name="og:type" content="article">
+	
+	<meta name="article:tag" content="">
+	<link rel="stylesheet" type="text/css" href="https://blog.su21.org/css/style.css">
+	
+	
+</head>
+
+<body>
+
+<header>
+	
+	<a href="https://blog.su21.org/" style="float: left;color:#ff3b30;">blog.su21.org</a>
+	
+	&nbsp;&nbsp;<a href="https://blog.su21.org/archives/" style="color:#777;">Archives</a>&nbsp;&nbsp;<a href="https://blog.su21.org/about/" style="color:#777;">About</a>
+	
+	<a href="https://blog.su21.org/posts/index.xml" style="color:#777;float: right;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-rss"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg></a>
+</header>
+
+
+<div class="content">
+  <h1>AES 加密优化</h1>
+  <aside></aside>
+  <p><p>最近在优化一块 UDP 协议加密模块。
+加密算法用到了 <a href="https://en.wikipedia.org/wiki/Advanced_Encryption_Standard">AES</a>。
+dotnet BCL 实现会有不可避免的内存分配，我不是特别满意。
+对于需要特别优化的情景， AES 完全可以原地加密解密，避免额外的内存分配与数据拷贝。</p>
+
+<p><strong>加密</strong></p>
+
+<p>AES 对加密数据长度有要求，加密数据需要 <a href="https://en.wikipedia.org/wiki/Padding_(cryptography)">padding</a> 补齐到 N×BlockSize 字节。</p>
+
+<p>实现中选用了 <strong>PKCS#7</strong> 中约定的 padding方案，具体算法如下：</p>
+
+<ul>
+<li>padding 长度：
+
+<ul>
+<li>如果原数据是 BlockSize 的倍数，那么额外填充 BlockSize 字节；</li>
+<li>否则补充 N 字节，使得数据长度是 BlockSize 的倍数。</li>
+</ul></li>
+<li>padding 内容：每个字节 填充的是额外填充的字节数</li>
+</ul>
+
+<p>padding 后密文要比明文长，但 padding 长度是有上限的：最多增多 BlockSize 字节。
+如果存储原文的 buffer 预留 padding 的空间，那么也可以做到原地加密，无需分配额外内存。</p>
+
+<p><strong>解密</strong></p>
+
+<p>解密只需原地解密，舍弃多余的 padding 即可。</p>
+
+<p><strong>接口设计如下</strong></p>
+<div class="highlight"><pre style=";-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-csharp" data-lang="csharp"><span style="color:#008000;font-weight:bold">public</span> <span style="color:#008000;font-weight:bold">class</span> <span style="color:#00f;font-weight:bold">Aes</span>
+{
+	<span style="color:#008000;font-weight:bold">public</span> Aes(<span style="color:#b00040">byte</span><span style="color:#7d9029">[]</span> key);
+
+	<span style="color:#408080;font-style:italic">// 原地加密数据，调用方保证 padding
+</span><span style="color:#408080;font-style:italic"></span>	<span style="color:#008000;font-weight:bold">public</span> <span style="color:#008000;font-weight:bold">void</span> Encrypt(<span style="color:#b00040">byte</span><span style="color:#7d9029">[]</span> data, <span style="color:#b00040">int</span> offset, <span style="color:#b00040">int</span> count);
+
+	<span style="color:#408080;font-style:italic">// 原地解密，调用方保证数据长度合法
+</span><span style="color:#408080;font-style:italic"></span>	<span style="color:#008000;font-weight:bold">public</span> <span style="color:#008000;font-weight:bold">void</span> Decrypt(<span style="color:#b00040">byte</span><span style="color:#7d9029">[]</span> data, <span style="color:#b00040">int</span> offset, <span style="color:#b00040">int</span> count);
+}
+</code></pre></div>
+<p><strong>Bencmark</strong></p>
+
+<p>做了一版用 Simd 的实现和一版纯 CSharp 的实现，和 BCL 实现对比如下</p>
+<div class="highlight"><pre style=";-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-ini" data-lang="ini"><span style="color:#7d9029">BenchmarkDotNet</span><span style="color:#666">=</span><span style="color:#ba2121">v0.11.5, OS=Windows 10.0.17763.503 (1809/October2018Update/Redstone5)</span>
+<span style="color:#7d9029">Intel Core i9-9900K CPU 3.60GHz (Coffee Lake), 1 CPU, 16 logical and 8 physical cores</span>
+<span style="color:#7d9029">.NET Core SDK</span><span style="color:#666">=</span><span style="color:#ba2121">3.0.100-preview5-011568
+</span><span style="color:#ba2121">  [Host] : .NET Core 3.0.0-preview5-27626-15 (CoreCLR 4.6.27622.75, CoreFX 4.700.19.22408), 64bit RyuJIT
+</span><span style="color:#ba2121">  Core   : .NET Core 3.0.0-preview5-27626-15 (CoreCLR 4.6.27622.75, CoreFX 4.700.19.22408), 64bit RyuJIT</span>
+
+<span style="color:#7d9029">Job</span><span style="color:#666">=</span><span style="color:#ba2121">Core  Runtime=Core  </span></code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>N</th>
+<th align="right">Mean</th>
+<th align="right">Error</th>
+<th align="right">StdDev</th>
+<th align="right">Median</th>
+<th align="right">Rank</th>
+<th align="right">Gen 0</th>
+<th align="right">Gen 1</th>
+<th align="right">Gen 2</th>
+<th align="right">Allocated</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td><strong>SimdAes</strong></td>
+<td><strong>64</strong></td>
+<td align="right"><strong>37.56 ns</strong></td>
+<td align="right"><strong>0.1362 ns</strong></td>
+<td align="right"><strong>0.1274 ns</strong></td>
+<td align="right"><strong>37.56 ns</strong></td>
+<td align="right"><strong>1</strong></td>
+<td align="right"><strong>-</strong></td>
+<td align="right"><strong>-</strong></td>
+<td align="right"><strong>-</strong></td>
+<td align="right"><strong>-</strong></td>
+</tr>
+
+<tr>
+<td>SoftAes</td>
+<td>64</td>
+<td align="right">1,052.10 ns</td>
+<td align="right">2.8615 ns</td>
+<td align="right">2.5366 ns</td>
+<td align="right">1,051.82 ns</td>
+<td align="right">9</td>
+<td align="right">-</td>
+<td align="right">-</td>
+<td align="right">-</td>
+<td align="right">-</td>
+</tr>
+
+<tr>
+<td>BCLAes</td>
+<td>64</td>
+<td align="right">227.02 ns</td>
+<td align="right">1.4791 ns</td>
+<td align="right">1.3112 ns</td>
+<td align="right">227.01 ns</td>
+<td align="right">3</td>
+<td align="right">0.0560</td>
+<td align="right">-</td>
+<td align="right">-</td>
+<td align="right">352 B</td>
+</tr>
+
+<tr>
+<td><strong>SimdAes</strong></td>
+<td><strong>128</strong></td>
+<td align="right"><strong>69.44 ns</strong></td>
+<td align="right"><strong>0.4143 ns</strong></td>
+<td align="right"><strong>0.3876 ns</strong></td>
+<td align="right"><strong>69.31 ns</strong></td>
+<td align="right"><strong>2</strong></td>
+<td align="right"><strong>-</strong></td>
+<td align="right"><strong>-</strong></td>
+<td align="right"><strong>-</strong></td>
+<td align="right"><strong>-</strong></td>
+</tr>
+
+<tr>
+<td>SoftAes</td>
+<td>128</td>
+<td align="right">2,089.74 ns</td>
+<td align="right">10.2304 ns</td>
+<td align="right">9.5696 ns</td>
+<td align="right">2,083.32 ns</td>
+<td align="right">11</td>
+<td align="right">-</td>
+<td align="right">-</td>
+<td align="right">-</td>
+<td align="right">-</td>
+</tr>
+
+<tr>
+<td>BCLAes</td>
+<td>128</td>
+<td align="right">248.72 ns</td>
+<td align="right">0.7852 ns</td>
+<td align="right">0.7345 ns</td>
+<td align="right">248.73 ns</td>
+<td align="right">4</td>
+<td align="right">0.0968</td>
+<td align="right">-</td>
+<td align="right">-</td>
+<td align="right">608 B</td>
+</tr>
+
+<tr>
+<td><strong>SimdAes</strong></td>
+<td><strong>512</strong></td>
+<td align="right"><strong>258.95 ns</strong></td>
+<td align="right"><strong>5.1241 ns</strong></td>
+<td align="right"><strong>6.6628 ns</strong></td>
+<td align="right"><strong>261.58 ns</strong></td>
+<td align="right"><strong>5</strong></td>
+<td align="right"><strong>-</strong></td>
+<td align="right"><strong>-</strong></td>
+<td align="right"><strong>-</strong></td>
+<td align="right"><strong>-</strong></td>
+</tr>
+
+<tr>
+<td>SoftAes</td>
+<td>512</td>
+<td align="right">8,301.91 ns</td>
+<td align="right">46.5607 ns</td>
+<td align="right">43.5529 ns</td>
+<td align="right">8,312.21 ns</td>
+<td align="right">12</td>
+<td align="right">-</td>
+<td align="right">-</td>
+<td align="right">-</td>
+<td align="right">-</td>
+</tr>
+
+<tr>
+<td>BCLAes</td>
+<td>512</td>
+<td align="right">481.27 ns</td>
+<td align="right">9.1106 ns</td>
+<td align="right">8.0763 ns</td>
+<td align="right">482.38 ns</td>
+<td align="right">6</td>
+<td align="right">0.3414</td>
+<td align="right">-</td>
+<td align="right">-</td>
+<td align="right">2144 B</td>
+</tr>
+
+<tr>
+<td><strong>SimdAes</strong></td>
+<td><strong>1024</strong></td>
+<td align="right"><strong>522.52 ns</strong></td>
+<td align="right"><strong>2.0733 ns</strong></td>
+<td align="right"><strong>1.9394 ns</strong></td>
+<td align="right"><strong>522.54 ns</strong></td>
+<td align="right"><strong>7</strong></td>
+<td align="right"><strong>-</strong></td>
+<td align="right"><strong>-</strong></td>
+<td align="right"><strong>-</strong></td>
+<td align="right"><strong>-</strong></td>
+</tr>
+
+<tr>
+<td>SoftAes</td>
+<td>1024</td>
+<td align="right">16,498.14 ns</td>
+<td align="right">57.6281 ns</td>
+<td align="right">51.0858 ns</td>
+<td align="right">16,496.09 ns</td>
+<td align="right">13</td>
+<td align="right">-</td>
+<td align="right">-</td>
+<td align="right">-</td>
+<td align="right">-</td>
+</tr>
+
+<tr>
+<td>BCLAes</td>
+<td>1024</td>
+<td align="right">806.21 ns</td>
+<td align="right">3.8529 ns</td>
+<td align="right">3.6040 ns</td>
+<td align="right">805.37 ns</td>
+<td align="right">8</td>
+<td align="right">0.6676</td>
+<td align="right">0.0010</td>
+<td align="right">-</td>
+<td align="right">4192 B</td>
+</tr>
+
+<tr>
+<td><strong>SimdAes</strong></td>
+<td><strong>2048</strong></td>
+<td align="right"><strong>1,058.61 ns</strong></td>
+<td align="right"><strong>6.4975 ns</strong></td>
+<td align="right"><strong>6.0777 ns</strong></td>
+<td align="right"><strong>1,056.97 ns</strong></td>
+<td align="right"><strong>9</strong></td>
+<td align="right"><strong>-</strong></td>
+<td align="right"><strong>-</strong></td>
+<td align="right"><strong>-</strong></td>
+<td align="right"><strong>-</strong></td>
+</tr>
+
+<tr>
+<td>SoftAes</td>
+<td>2048</td>
+<td align="right">32,253.09 ns</td>
+<td align="right">638.4395 ns</td>
+<td align="right">1,245.2273 ns</td>
+<td align="right">32,820.29 ns</td>
+<td align="right">14</td>
+<td align="right">-</td>
+<td align="right">-</td>
+<td align="right">-</td>
+<td align="right">-</td>
+</tr>
+
+<tr>
+<td>BCLAes</td>
+<td>2048</td>
+<td align="right">1,410.32 ns</td>
+<td align="right">6.7913 ns</td>
+<td align="right">6.0204 ns</td>
+<td align="right">1,407.00 ns</td>
+<td align="right">10</td>
+<td align="right">1.3199</td>
+<td align="right">-</td>
+<td align="right">-</td>
+<td align="right">8288 B</td>
+</tr>
+</tbody>
+</table>
+</p>
+</div>
+
+
+  <p>Written on Jun 8, 2019.</p>
+  
+
+
+<footer>
+	<p>&copy; 2019 All rights reserved.</p>
+</footer>
+</body>
+</html>
