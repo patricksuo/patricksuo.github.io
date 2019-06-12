@@ -99,7 +99,6 @@ dotnet BCL 实现会有不可避免的内存分配，我不是特别满意。
 <th align="right">Mean</th>
 <th align="right">Error</th>
 <th align="right">StdDev</th>
-<th align="right">Median</th>
 <th align="right">Rank</th>
 <th align="right">Gen 0</th>
 <th align="right">Gen 1</th>
@@ -110,12 +109,11 @@ dotnet BCL 实现会有不可避免的内存分配，我不是特别满意。
 
 <tbody>
 <tr>
-<td><strong>SimdAes</strong></td>
+<td><strong>SimdAES</strong></td>
 <td><strong>64</strong></td>
-<td align="right"><strong>37.56 ns</strong></td>
-<td align="right"><strong>0.1362 ns</strong></td>
-<td align="right"><strong>0.1274 ns</strong></td>
-<td align="right"><strong>37.56 ns</strong></td>
+<td align="right"><strong>37.47 ns</strong></td>
+<td align="right"><strong>0.7406 ns</strong></td>
+<td align="right"><strong>0.7924 ns</strong></td>
 <td align="right"><strong>1</strong></td>
 <td align="right"><strong>-</strong></td>
 <td align="right"><strong>-</strong></td>
@@ -124,13 +122,12 @@ dotnet BCL 实现会有不可避免的内存分配，我不是特别满意。
 </tr>
 
 <tr>
-<td>SoftAes</td>
+<td>SoftAES</td>
 <td>64</td>
-<td align="right">1,052.10 ns</td>
-<td align="right">2.8615 ns</td>
-<td align="right">2.5366 ns</td>
-<td align="right">1,051.82 ns</td>
-<td align="right">9</td>
+<td align="right">1,044.83 ns</td>
+<td align="right">20.6364 ns</td>
+<td align="right">32.1283 ns</td>
+<td align="right">10</td>
 <td align="right">-</td>
 <td align="right">-</td>
 <td align="right">-</td>
@@ -138,26 +135,24 @@ dotnet BCL 实现会有不可避免的内存分配，我不是特别满意。
 </tr>
 
 <tr>
-<td>BCLAes</td>
+<td>BCLAES</td>
 <td>64</td>
-<td align="right">227.02 ns</td>
-<td align="right">1.4791 ns</td>
-<td align="right">1.3112 ns</td>
-<td align="right">227.01 ns</td>
+<td align="right">254.62 ns</td>
+<td align="right">0.9572 ns</td>
+<td align="right">0.8954 ns</td>
 <td align="right">3</td>
-<td align="right">0.0560</td>
+<td align="right">0.0701</td>
 <td align="right">-</td>
 <td align="right">-</td>
-<td align="right">352 B</td>
+<td align="right">440 B</td>
 </tr>
 
 <tr>
-<td><strong>SimdAes</strong></td>
+<td><strong>SimdAES</strong></td>
 <td><strong>128</strong></td>
-<td align="right"><strong>69.44 ns</strong></td>
-<td align="right"><strong>0.4143 ns</strong></td>
-<td align="right"><strong>0.3876 ns</strong></td>
-<td align="right"><strong>69.31 ns</strong></td>
+<td align="right"><strong>69.42 ns</strong></td>
+<td align="right"><strong>0.2799 ns</strong></td>
+<td align="right"><strong>0.2618 ns</strong></td>
 <td align="right"><strong>2</strong></td>
 <td align="right"><strong>-</strong></td>
 <td align="right"><strong>-</strong></td>
@@ -166,54 +161,11 @@ dotnet BCL 实现会有不可避免的内存分配，我不是特别满意。
 </tr>
 
 <tr>
-<td>SoftAes</td>
+<td>SoftAES</td>
 <td>128</td>
-<td align="right">2,089.74 ns</td>
-<td align="right">10.2304 ns</td>
-<td align="right">9.5696 ns</td>
-<td align="right">2,083.32 ns</td>
-<td align="right">11</td>
-<td align="right">-</td>
-<td align="right">-</td>
-<td align="right">-</td>
-<td align="right">-</td>
-</tr>
-
-<tr>
-<td>BCLAes</td>
-<td>128</td>
-<td align="right">248.72 ns</td>
-<td align="right">0.7852 ns</td>
-<td align="right">0.7345 ns</td>
-<td align="right">248.73 ns</td>
-<td align="right">4</td>
-<td align="right">0.0968</td>
-<td align="right">-</td>
-<td align="right">-</td>
-<td align="right">608 B</td>
-</tr>
-
-<tr>
-<td><strong>SimdAes</strong></td>
-<td><strong>512</strong></td>
-<td align="right"><strong>258.95 ns</strong></td>
-<td align="right"><strong>5.1241 ns</strong></td>
-<td align="right"><strong>6.6628 ns</strong></td>
-<td align="right"><strong>261.58 ns</strong></td>
-<td align="right"><strong>5</strong></td>
-<td align="right"><strong>-</strong></td>
-<td align="right"><strong>-</strong></td>
-<td align="right"><strong>-</strong></td>
-<td align="right"><strong>-</strong></td>
-</tr>
-
-<tr>
-<td>SoftAes</td>
-<td>512</td>
-<td align="right">8,301.91 ns</td>
-<td align="right">46.5607 ns</td>
-<td align="right">43.5529 ns</td>
-<td align="right">8,312.21 ns</td>
+<td align="right">2,092.56 ns</td>
+<td align="right">8.4587 ns</td>
+<td align="right">7.4984 ns</td>
 <td align="right">12</td>
 <td align="right">-</td>
 <td align="right">-</td>
@@ -222,40 +174,37 @@ dotnet BCL 实现会有不可避免的内存分配，我不是特别满意。
 </tr>
 
 <tr>
-<td>BCLAes</td>
+<td>BCLAES</td>
+<td>128</td>
+<td align="right">297.62 ns</td>
+<td align="right">3.8661 ns</td>
+<td align="right">3.6163 ns</td>
+<td align="right">5</td>
+<td align="right">0.1211</td>
+<td align="right">-</td>
+<td align="right">-</td>
+<td align="right">760 B</td>
+</tr>
+
+<tr>
+<td><strong>SimdAES</strong></td>
+<td><strong>512</strong></td>
+<td align="right"><strong>261.56 ns</strong></td>
+<td align="right"><strong>4.1769 ns</strong></td>
+<td align="right"><strong>3.9071 ns</strong></td>
+<td align="right"><strong>4</strong></td>
+<td align="right"><strong>-</strong></td>
+<td align="right"><strong>-</strong></td>
+<td align="right"><strong>-</strong></td>
+<td align="right"><strong>-</strong></td>
+</tr>
+
+<tr>
+<td>SoftAES</td>
 <td>512</td>
-<td align="right">481.27 ns</td>
-<td align="right">9.1106 ns</td>
-<td align="right">8.0763 ns</td>
-<td align="right">482.38 ns</td>
-<td align="right">6</td>
-<td align="right">0.3414</td>
-<td align="right">-</td>
-<td align="right">-</td>
-<td align="right">2144 B</td>
-</tr>
-
-<tr>
-<td><strong>SimdAes</strong></td>
-<td><strong>1024</strong></td>
-<td align="right"><strong>522.52 ns</strong></td>
-<td align="right"><strong>2.0733 ns</strong></td>
-<td align="right"><strong>1.9394 ns</strong></td>
-<td align="right"><strong>522.54 ns</strong></td>
-<td align="right"><strong>7</strong></td>
-<td align="right"><strong>-</strong></td>
-<td align="right"><strong>-</strong></td>
-<td align="right"><strong>-</strong></td>
-<td align="right"><strong>-</strong></td>
-</tr>
-
-<tr>
-<td>SoftAes</td>
-<td>1024</td>
-<td align="right">16,498.14 ns</td>
-<td align="right">57.6281 ns</td>
-<td align="right">51.0858 ns</td>
-<td align="right">16,496.09 ns</td>
+<td align="right">8,309.41 ns</td>
+<td align="right">125.6760 ns</td>
+<td align="right">111.4085 ns</td>
 <td align="right">13</td>
 <td align="right">-</td>
 <td align="right">-</td>
@@ -264,27 +213,25 @@ dotnet BCL 实现会有不可避免的内存分配，我不是特别满意。
 </tr>
 
 <tr>
-<td>BCLAes</td>
-<td>1024</td>
-<td align="right">806.21 ns</td>
-<td align="right">3.8529 ns</td>
-<td align="right">3.6040 ns</td>
-<td align="right">805.37 ns</td>
-<td align="right">8</td>
-<td align="right">0.6676</td>
-<td align="right">0.0010</td>
+<td>BCLAES</td>
+<td>512</td>
+<td align="right">595.59 ns</td>
+<td align="right">5.2638 ns</td>
+<td align="right">4.9237 ns</td>
+<td align="right">7</td>
+<td align="right">0.4263</td>
 <td align="right">-</td>
-<td align="right">4192 B</td>
+<td align="right">-</td>
+<td align="right">2680 B</td>
 </tr>
 
 <tr>
-<td><strong>SimdAes</strong></td>
-<td><strong>2048</strong></td>
-<td align="right"><strong>1,058.61 ns</strong></td>
-<td align="right"><strong>6.4975 ns</strong></td>
-<td align="right"><strong>6.0777 ns</strong></td>
-<td align="right"><strong>1,056.97 ns</strong></td>
-<td align="right"><strong>9</strong></td>
+<td><strong>SimdAES</strong></td>
+<td><strong>1024</strong></td>
+<td align="right"><strong>536.77 ns</strong></td>
+<td align="right"><strong>9.6029 ns</strong></td>
+<td align="right"><strong>8.9826 ns</strong></td>
+<td align="right"><strong>6</strong></td>
 <td align="right"><strong>-</strong></td>
 <td align="right"><strong>-</strong></td>
 <td align="right"><strong>-</strong></td>
@@ -292,12 +239,11 @@ dotnet BCL 实现会有不可避免的内存分配，我不是特别满意。
 </tr>
 
 <tr>
-<td>SoftAes</td>
-<td>2048</td>
-<td align="right">32,253.09 ns</td>
-<td align="right">638.4395 ns</td>
-<td align="right">1,245.2273 ns</td>
-<td align="right">32,820.29 ns</td>
+<td>SoftAES</td>
+<td>1024</td>
+<td align="right">16,871.83 ns</td>
+<td align="right">270.3667 ns</td>
+<td align="right">252.9012 ns</td>
 <td align="right">14</td>
 <td align="right">-</td>
 <td align="right">-</td>
@@ -306,17 +252,55 @@ dotnet BCL 实现会有不可避免的内存分配，我不是特别满意。
 </tr>
 
 <tr>
-<td>BCLAes</td>
+<td>BCLAES</td>
+<td>1024</td>
+<td align="right">992.60 ns</td>
+<td align="right">19.2421 ns</td>
+<td align="right">22.1592 ns</td>
+<td align="right">8</td>
+<td align="right">0.8335</td>
+<td align="right">-</td>
+<td align="right">-</td>
+<td align="right">5240 B</td>
+</tr>
+
+<tr>
+<td><strong>SimdAES</strong></td>
+<td><strong>2048</strong></td>
+<td align="right"><strong>1,037.46 ns</strong></td>
+<td align="right"><strong>10.0816 ns</strong></td>
+<td align="right"><strong>9.4303 ns</strong></td>
+<td align="right"><strong>9</strong></td>
+<td align="right"><strong>-</strong></td>
+<td align="right"><strong>-</strong></td>
+<td align="right"><strong>-</strong></td>
+<td align="right"><strong>-</strong></td>
+</tr>
+
+<tr>
+<td>SoftAES</td>
 <td>2048</td>
-<td align="right">1,410.32 ns</td>
-<td align="right">6.7913 ns</td>
-<td align="right">6.0204 ns</td>
-<td align="right">1,407.00 ns</td>
-<td align="right">10</td>
-<td align="right">1.3199</td>
+<td align="right">33,012.68 ns</td>
+<td align="right">106.9043 ns</td>
+<td align="right">99.9984 ns</td>
+<td align="right">15</td>
 <td align="right">-</td>
 <td align="right">-</td>
-<td align="right">8288 B</td>
+<td align="right">-</td>
+<td align="right">-</td>
+</tr>
+
+<tr>
+<td>BCLAES</td>
+<td>2048</td>
+<td align="right">1,680.53 ns</td>
+<td align="right">33.2775 ns</td>
+<td align="right">68.7239 ns</td>
+<td align="right">11</td>
+<td align="right">1.6499</td>
+<td align="right">0.0038</td>
+<td align="right">-</td>
+<td align="right">10360 B</td>
 </tr>
 </tbody>
 </table>
