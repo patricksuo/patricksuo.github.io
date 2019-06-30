@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	
+	<title>服务故障自动恢复</title>
+	
+	<meta name="description" content="">
+	<meta name="image" content="">
+	
+	<meta itemprop="name" content="服务故障自动恢复">
+	<meta itemprop="description" content="">
+	<meta itemprop="image" content="">
+	
+	<meta name="og:title" content="服务故障自动恢复">
+	<meta name="og:description" content="">
+	
+	<meta name="og:url" content="https://blog.su21.org/posts/thoughts_about_service_failure_and_auto_recovery/">
+	<meta name="og:site_name" content="服务故障自动恢复">
+	<meta name="og:type" content="article">
+	
+	<meta name="article:tag" content="">
+	<link rel="stylesheet" type="text/css" href="https://blog.su21.org/css/style.css">
+	
+	
+</head>
+
+<body>
+
+<header>
+	
+	<a href="https://blog.su21.org/" style="float: left;color:#ff3b30;">blog.su21.org</a>
+	
+	&nbsp;&nbsp;<a href="https://blog.su21.org/archives/" style="color:#777;">Archives</a>&nbsp;&nbsp;<a href="https://blog.su21.org/about/" style="color:#777;">About</a>
+	
+	<a href="https://blog.su21.org/posts/index.xml" style="color:#777;float: right;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-rss"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg></a>
+</header>
+
+
+<div class="content">
+  <h1>服务故障自动恢复</h1>
+  <aside></aside>
+  <p><p>达达对服务器 crash 自动重启表示过反对。但鹅厂有种服务故障快速拉起的传统。</p>
+
+<p>一开始我以为是两种大相径庭的观点，为此很困惑。
+后来又觉得这两套不同的技术体系会有殊途同归之处。</p>
+
+<p>『故障快速拉起』或者说『服务故障自动恢复』。
+本质上意图是提高服务可用性。</p>
+
+<p>达达不喜欢 crash 自动重启，但他的框架有很好的异常管理。
+我想:</p>
+
+<ul>
+<li>意图与目的上 1) 进程内异常捕获与恢复 和 2) 外部重启 crash 的服务进程 两者是相同的</li>
+<li>具体操作上，判断 1) crash 是否能自动重启解决 与 2)异常是否可捕获恢复 两者也没有本质区别</li>
+</ul>
+
+<p>同一个目的，有两种看起来截然不同的手段，我大概想了以下原因:</p>
+
+<p><strong>技术特点</strong>：</p>
+
+<p>达达的游戏框架对可恢复的异常有充分管理进程本身不会轻易crash，除非遇到致命错误。</p>
+
+<p>鹅厂常用 C++ 。
+业务逻辑产生的异常未必容易捕获，
+但 共享内存+无状态进程+快速重启进程+接入层重试 同样能做一些异常恢复。</p>
+
+<p>其实发现两套不同的实践都达到了类似的目的。</p>
+
+<p><strong>规模</strong>:</p>
+
+<p>在开发规模很大 (比如很多人月、特性、LOC) 的情况下，
+无状态服务 <em>可能</em> 是一个比达达那套框架更容易实施方案。</p>
+
+<p><strong>组织架构</strong>:</p>
+
+<p>达达是 CTO ，同时兼顾开发和运维职责。
+他的程序在设计的时候就有考虑运维简单与可用性。</p>
+
+<p>接入腾讯的游戏厂商和腾讯互娱运维是天然的 dev 与 op 分离。
+程序能 crash 后快速拉起是让运维很舒服的事情，但 开发商未必有动力。</p>
+</p>
+</div>
+
+
+  <p>Written on Sep 4, 2018.</p>
+  
+
+  <div id="disqus_thread"></div>
+<script>
+
+
+var disqus_config = function () {
+this.page.url = "https://blog.su21.org/posts/thoughts_about_service_failure_and_auto_recovery/";  
+this.page.identifier = "8e418c1f36d394102a70cc917f927d42"; 
+};
+
+(function() { 
+var d = document, s = d.createElement('script');
+s.src = 'https://blog-su21-org.disqus.com/embed.js';
+s.setAttribute('data-timestamp', +new Date());
+(d.head || d.body).appendChild(s);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+
+  
+
+
+<footer>
+	<p>&copy; 2019 All rights reserved.</p>
+</footer>
+</body>
+</html>
